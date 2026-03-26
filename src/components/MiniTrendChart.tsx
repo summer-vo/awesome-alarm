@@ -21,8 +21,8 @@ interface MiniTrendChartProps {
 export function MiniTrendChart({ values, average, color }: MiniTrendChartProps) {
   const gradientId = useId();
   const width = 100;
-  const height = 58;
-  const padding = 6;
+  const height = 42;
+  const padding = 3.5;
   const rawMin = Math.min(...values, average);
   const rawMax = Math.max(...values, average);
   const rawRange = rawMax - rawMin;

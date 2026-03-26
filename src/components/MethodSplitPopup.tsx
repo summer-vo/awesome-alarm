@@ -3,7 +3,7 @@
  * 方法拆分页。
  * 负责在详情页趋势基础上继续下钻到方法级别，提供筛选、多选、聚焦和统计联动能力。
  */
-import { SearchBar } from 'antd-mobile';
+import { Popover, SearchBar } from 'antd-mobile';
 import { FilterOutline } from 'antd-mobile-icons';
 import { useEffect, useMemo, useState } from 'react';
 import { buildMethodBreakdown } from '../data/mockData';
@@ -18,6 +18,8 @@ interface MethodSplitPageProps {
   rangeKey: TimeRangeKey;
   onMetaChange: (meta: { title: string }) => void;
 }
+
+type StatSortKey = 'max' | 'min' | 'average' | 'variance';
 
 /**
  * 渲染方法拆分页。
@@ -44,6 +46,10 @@ export function MethodSplitPage({
     value: number;
     time: number;
   } | null>(null);
+  const [statSort, setStatSort] = useState<{ key: StatSortKey; order: 'asc' | 'desc' }>({
+    key: 'variance',
+    order: 'desc',
+  });
 
   const breakdown = useMemo(
     () => buildMethodBreakdown(system.id, selectedMetric, rangeKey),
@@ -57,6 +63,10 @@ export function MethodSplitPage({
     setVisibleSeriesNames(breakdown.defaultVisibleSeriesNames);
     setFocusedSeriesName(null);
     setFocusedStat(null);
+    setStatSort({
+      key: 'variance',
+      order: 'desc',
+    });
   }, [system.id, breakdown.metricKey, breakdown.totalSeriesCount, breakdown.defaultVisibleSeriesNames, rangeKey]);
 
   useEffect(() => {
@@ -120,6 +130,22 @@ export function MethodSplitPage({
     (chartSeries[0] ?? breakdown.series[0])?.points.map((point) => formatChartTime(point.timestamp, rangeKey)) ??
     [];
   const labelInterval = Math.max(0, Math.floor(categoryAxis.length / 4));
+  const sortedSeriesStats = useMemo(() => {
+    const getSortValue = (series: (typeof seriesStats)[number]) => {
+      if (statSort.key === 'max') return series.maxPoint.value;
+      if (statSort.key === 'min') return series.minPoint.value;
+      if (statSort.key === 'average') return series.average;
+      return series.variance;
+    };
+
+    const sorted = [...seriesStats].sort((left, right) => {
+      const leftValue = getSortValue(left);
+      const rightValue = getSortValue(right);
+      return statSort.order === 'desc' ? rightValue - leftValue : leftValue - rightValue;
+    });
+
+    return sorted;
+  }, [seriesStats, statSort]);
 
   /**
    * 切换方法是否参与当前多选集合。
@@ -144,6 +170,22 @@ export function MethodSplitPage({
   function handleFocusSeries(name: string) {
     setVisibleSeriesNames((current) => (current.includes(name) ? current : [...current, name]));
     setFocusedSeriesName((current) => (current === name ? null : name));
+  }
+
+  function toggleStatSort(nextKey: StatSortKey) {
+    setStatSort((current) => {
+      if (current.key === nextKey) {
+        return {
+          key: nextKey,
+          order: current.order === 'desc' ? 'asc' : 'desc',
+        };
+      }
+
+      return {
+        key: nextKey,
+        order: 'desc',
+      };
+    });
   }
 
   // 图表配置区：聚焦单方法时只保留单条折线，否则展示当前多选集合。
@@ -283,7 +325,19 @@ export function MethodSplitPage({
           <>
             {/* 已选状态与批量操作。 */}
             <div className="split-sheet__actions-row">
-              <span className="split-sheet__selection-note">已选 {activeSeries.length} 项</span>
+              <div className="split-sheet__selection-note-wrap">
+                <span className="split-sheet__selection-note">已选 {activeSeries.length} 项</span>
+                <Popover
+                  mode="dark"
+                  trigger="click"
+                  placement="top-start"
+                  content={<span className="split-sheet__popover-content">默认展示方差由大到小前五项</span>}
+                >
+                  <button type="button" className="split-sheet__help" aria-label="查看已选项说明">
+                    ?
+                  </button>
+                </Popover>
+              </div>
               <div className="split-sheet__action-group">
                 <button
                   type="button"
@@ -351,7 +405,19 @@ export function MethodSplitPage({
 
         <div className="split-sheet__table-wrap">
           <div className="split-sheet__table-head">
-            <span>方法统计</span>
+            <div className="split-sheet__table-title-wrap">
+              <span>方法统计</span>
+              <Popover
+                mode="dark"
+                trigger="click"
+                placement="top-start"
+                content={<span className="split-sheet__popover-content">默认按照方差由大到小排序</span>}
+              >
+                <button type="button" className="split-sheet__help" aria-label="查看方法统计说明">
+                  ?
+                </button>
+              </Popover>
+            </div>
             {focusedStat ? (
               <span className="split-sheet__table-note">
                 {focusedStat.seriesName} {focusedStat.type === 'max' ? '最大值' : '最小值'} {formatNumber(focusedStat.value, breakdown.precision)}
@@ -378,14 +444,50 @@ export function MethodSplitPage({
               <thead>
                 <tr>
                   <th>方法</th>
-                  <th>最大值</th>
-                  <th>最小值</th>
-                  <th>均值</th>
-                  <th>方差</th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`split-sheet__sort-btn ${statSort.key === 'max' ? 'is-active' : ''}`}
+                      onClick={() => toggleStatSort('max')}
+                    >
+                      最大值
+                      <span>{statSort.key === 'max' ? (statSort.order === 'desc' ? '↓' : '↑') : '↕'}</span>
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`split-sheet__sort-btn ${statSort.key === 'min' ? 'is-active' : ''}`}
+                      onClick={() => toggleStatSort('min')}
+                    >
+                      最小值
+                      <span>{statSort.key === 'min' ? (statSort.order === 'desc' ? '↓' : '↑') : '↕'}</span>
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`split-sheet__sort-btn ${statSort.key === 'average' ? 'is-active' : ''}`}
+                      onClick={() => toggleStatSort('average')}
+                    >
+                      均值
+                      <span>{statSort.key === 'average' ? (statSort.order === 'desc' ? '↓' : '↑') : '↕'}</span>
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`split-sheet__sort-btn ${statSort.key === 'variance' ? 'is-active' : ''}`}
+                      onClick={() => toggleStatSort('variance')}
+                    >
+                      方差
+                      <span>{statSort.key === 'variance' ? (statSort.order === 'desc' ? '↓' : '↑') : '↕'}</span>
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {seriesStats.map((series) => (
+                {sortedSeriesStats.map((series) => (
                   <tr
                     key={series.name}
                     className={`${series.active ? 'is-active' : ''} ${

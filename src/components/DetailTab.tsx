@@ -3,7 +3,7 @@
  * 系统详情页。
  * 负责串联当前系统的时间范围、指标总览、趋势分析和方法拆分页入口。
  */
-import { Button, Tag } from 'antd-mobile';
+import { Button, Popover, Tag } from 'antd-mobile';
 import { BellOutline, HistogramOutline } from 'antd-mobile-icons';
 import { useEffect, useState } from 'react';
 import {
@@ -28,6 +28,12 @@ interface DetailTabProps {
   onChangeSystem: () => void;
   onOpenSplit: () => void;
 }
+
+const percentileHelpTextMap: Record<string, string> = {
+  p50: '50%请求响应时间不超过该值',
+  p90: '90%请求响应时间不超过该值',
+  p99: '99%请求响应时间不超过该值',
+};
 
 /**
  * 渲染系统详情分栏。
@@ -93,6 +99,33 @@ export function DetailTab({
     { label: '方差', value: getVarianceLabel(trendDataset.stats.variance, 2) },
     { label: '标准差', value: getVarianceLabel(trendDataset.stats.stdDeviation, 2) },
   ];
+  const renderMetricCard = (metric: (typeof system.detailMetrics)[number], folded = false) => {
+    const percentileHelpText = percentileHelpTextMap[metric.key];
+
+    return (
+      <div
+        key={metric.key}
+        className={`detail-metric-card ${folded ? 'detail-metric-card--folded' : ''}`}
+      >
+        <div className="detail-metric-card__label-row">
+          <span>{metric.label}</span>
+          {percentileHelpText ? (
+            <Popover
+              mode="dark"
+              trigger="click"
+              placement="top"
+              content={<span className="detail-metric-card__popover-content">{percentileHelpText}</span>}
+            >
+              <button type="button" className="detail-metric-card__help" aria-label={`查看${metric.label}说明`}>
+                ?
+              </button>
+            </Popover>
+          ) : null}
+        </div>
+        <strong>{formatMetricValue(metric.value, metric.unit, metric.precision)}</strong>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -178,22 +211,12 @@ export function DetailTab({
           ) : null}
 
           <div className="detail-metric-grid detail-metric-grid--compact">
-            {featuredMetrics.map((metric) => (
-              <div key={metric.key} className="detail-metric-card">
-                <span>{metric.label}</span>
-                <strong>{formatMetricValue(metric.value, metric.unit, metric.precision)}</strong>
-              </div>
-            ))}
+            {featuredMetrics.map((metric) => renderMetricCard(metric))}
           </div>
 
           {foldedMetrics.length > 0 && metricsExpanded ? (
             <div className="detail-metric-grid detail-metric-grid--compact detail-metric-grid--folded">
-              {foldedMetrics.map((metric) => (
-                <div key={metric.key} className="detail-metric-card detail-metric-card--folded">
-                  <span>{metric.label}</span>
-                  <strong>{formatMetricValue(metric.value, metric.unit, metric.precision)}</strong>
-                </div>
-              ))}
+              {foldedMetrics.map((metric) => renderMetricCard(metric, true))}
             </div>
           ) : null}
         </div>
