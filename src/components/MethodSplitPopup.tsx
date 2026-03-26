@@ -4,7 +4,7 @@
  * 负责在详情页趋势基础上继续下钻到方法级别，提供筛选、多选、聚焦和统计联动能力。
  */
 import { Popover, SearchBar } from 'antd-mobile';
-import { FilterOutline } from 'antd-mobile-icons';
+import { FilterOutline, QuestionCircleOutline } from 'antd-mobile-icons';
 import { useEffect, useMemo, useState } from 'react';
 import { buildMethodBreakdown } from '../data/mockData';
 import type { SystemMonitor, TimeRangeKey, TrendMetricKey } from '../types/monitor';
@@ -326,15 +326,15 @@ export function MethodSplitPage({
             {/* 已选状态与批量操作。 */}
             <div className="split-sheet__actions-row">
               <div className="split-sheet__selection-note-wrap">
-                <span className="split-sheet__selection-note">已选 {activeSeries.length} 项</span>
                 <Popover
                   mode="dark"
                   trigger="click"
                   placement="top-start"
                   content={<span className="split-sheet__popover-content">默认展示方差由大到小前五项</span>}
                 >
-                  <button type="button" className="split-sheet__help" aria-label="查看已选项说明">
-                    ?
+                  <button type="button" className="split-sheet__text-help-trigger" aria-label="查看已选项说明">
+                    已选 {activeSeries.length} 项
+                    <QuestionCircleOutline className="split-sheet__help-icon" />
                   </button>
                 </Popover>
               </div>
@@ -406,15 +406,15 @@ export function MethodSplitPage({
         <div className="split-sheet__table-wrap">
           <div className="split-sheet__table-head">
             <div className="split-sheet__table-title-wrap">
-              <span>方法统计</span>
               <Popover
                 mode="dark"
                 trigger="click"
                 placement="top-start"
                 content={<span className="split-sheet__popover-content">默认按照方差由大到小排序</span>}
               >
-                <button type="button" className="split-sheet__help" aria-label="查看方法统计说明">
-                  ?
+                <button type="button" className="split-sheet__text-help-trigger" aria-label="查看方法统计说明">
+                  方法统计
+                  <QuestionCircleOutline className="split-sheet__help-icon" />
                 </button>
               </Popover>
             </div>

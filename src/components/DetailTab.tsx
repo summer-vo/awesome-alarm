@@ -4,7 +4,7 @@
  * 负责串联当前系统的时间范围、指标总览、趋势分析和方法拆分页入口。
  */
 import { Button, Popover, Tag } from 'antd-mobile';
-import { BellOutline, HistogramOutline } from 'antd-mobile-icons';
+import { BellOutline, HistogramOutline, QuestionCircleOutline } from 'antd-mobile-icons';
 import { useEffect, useState } from 'react';
 import {
   buildMetricTrend,
@@ -101,29 +101,36 @@ export function DetailTab({
   ];
   const renderMetricCard = (metric: (typeof system.detailMetrics)[number], folded = false) => {
     const percentileHelpText = percentileHelpTextMap[metric.key];
-
-    return (
-      <div
-        key={metric.key}
-        className={`detail-metric-card ${folded ? 'detail-metric-card--folded' : ''}`}
-      >
+    const cardContent = (
+      <div className={`detail-metric-card ${folded ? 'detail-metric-card--folded' : ''}`}>
         <div className="detail-metric-card__label-row">
-          <span>{metric.label}</span>
           {percentileHelpText ? (
-            <Popover
-              mode="dark"
-              trigger="click"
-              placement="top"
-              content={<span className="detail-metric-card__popover-content">{percentileHelpText}</span>}
-            >
-              <button type="button" className="detail-metric-card__help" aria-label={`查看${metric.label}说明`}>
-                ?
-              </button>
-            </Popover>
-          ) : null}
+            <span className="detail-metric-card__label-help-trigger" aria-label={`查看${metric.label}说明`}>
+              <span className="detail-metric-card__label-underlined">{metric.label}</span>
+              <QuestionCircleOutline className="detail-metric-card__help-icon" />
+            </span>
+          ) : (
+            <span>{metric.label}</span>
+          )}
         </div>
         <strong>{formatMetricValue(metric.value, metric.unit, metric.precision)}</strong>
       </div>
+    );
+
+    if (!percentileHelpText) {
+      return <div key={metric.key}>{cardContent}</div>;
+    }
+
+    return (
+      <Popover
+        key={metric.key}
+        mode="dark"
+        trigger="click"
+        placement="top"
+        content={<span className="detail-metric-card__popover-content">{percentileHelpText}</span>}
+      >
+        <div className="detail-metric-card__popover-trigger">{cardContent}</div>
+      </Popover>
     );
   };
 

@@ -5,7 +5,7 @@
  * 并把状态与回调分发给总览、详情、告警和系统选择弹层。
  */
 import { SafeArea, TabBar, Toast } from 'antd-mobile';
-import { AppOutline, BellOutline, FileOutline, LeftOutline } from 'antd-mobile-icons';
+import { BellOutline, LeftOutline, PieOutline, TextOutline } from 'antd-mobile-icons';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { OverviewTab } from './components/OverviewTab';
 import { SystemPickerPopup } from './components/SystemPickerPopup';
@@ -212,8 +212,8 @@ export default function App() {
         {!splitPageVisible ? (
           <div className="tabbar-wrap">
             <TabBar activeKey={activeTab} onChange={handleTabChange} safeArea={false}>
-              <TabBar.Item key="overview" icon={<AppOutline />} title="总览" />
-              <TabBar.Item key="detail" icon={<FileOutline />} title="详情" />
+              <TabBar.Item key="overview" icon={<PieOutline />} title="总览" />
+              <TabBar.Item key="detail" icon={<TextOutline />} title="详情" />
               <TabBar.Item key="alerts" icon={<BellOutline />} title="告警" />
             </TabBar>
             <SafeArea position="bottom" />
