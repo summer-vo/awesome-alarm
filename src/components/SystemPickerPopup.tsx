@@ -14,6 +14,14 @@ interface SystemPickerPopupProps {
   onClose: () => void;
 }
 
+// 与系统卡片、详情头部保持同一套标签色映射，避免系统来源语义漂移。
+const sourceTagToneClassMap: Record<string, string> = {
+  日志接入: 'tag-tone-log',
+  Hades接入: 'tag-tone-hades',
+  APM接入: 'tag-tone-apm',
+  链路追踪: 'tag-tone-trace',
+};
+
 /**
  * 渲染系统选择弹层。
  * @param visible 当前弹层是否显示。
@@ -37,6 +45,7 @@ export function SystemPickerPopup({
     }
   }, [visible]);
 
+  // 搜索范围覆盖系统名称、业务域和接入来源，减少切系统的来回操作。
   const filteredSystems = useMemo(() => {
     const searchText = keyword.trim().toLowerCase();
 
@@ -52,14 +61,9 @@ export function SystemPickerPopup({
 
   return (
     <Popup
+      className="picker-popup"
       visible={visible}
       onMaskClick={onClose}
-      bodyStyle={{
-        height: '72vh',
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
-        background: 'linear-gradient(180deg, #0f1a2f 0%, #0a1323 100%)',
-      }}
     >
       <div className="picker-sheet">
         <div className="picker-sheet__handle" />
@@ -89,7 +93,12 @@ export function SystemPickerPopup({
                 <h4>{system.name}</h4>
                 <div className="picker-item__tags">
                   {system.sources.map((source) => (
-                    <Tag key={source} fill="outline" color="primary">
+                    <Tag
+                      key={source}
+                      fill="outline"
+                      color="primary"
+                      className={sourceTagToneClassMap[source] ?? ''}
+                    >
                       {source}
                     </Tag>
                   ))}

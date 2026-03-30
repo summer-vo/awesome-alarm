@@ -91,9 +91,17 @@ export function MethodSplitPage({
   const filteredSeries = breakdown.series.filter((series) =>
     series.name.toLowerCase().includes(keyword.toLowerCase()),
   );
+  // 这组派生状态只服务于顶部批量操作按钮的选中反馈，不参与图表计算。
+  const allSeriesNames = useMemo(() => breakdown.series.map((series) => series.name), [breakdown.series]);
   const activeSeries = breakdown.series.filter((series) => visibleSeriesNames.includes(series.name));
   const focusedSeries = breakdown.series.find((series) => series.name === focusedSeriesName) ?? null;
   const chartSeries = focusedSeries ? [focusedSeries] : activeSeries;
+  const isAllSelected =
+    visibleSeriesNames.length === allSeriesNames.length &&
+    allSeriesNames.every((name) => visibleSeriesNames.includes(name));
+  const isDefaultSelection =
+    visibleSeriesNames.length === breakdown.defaultVisibleSeriesNames.length &&
+    breakdown.defaultVisibleSeriesNames.every((name) => visibleSeriesNames.includes(name));
   const chartBounds = useMemo(() => {
     const values = chartSeries.flatMap((series) => series.points.map((point) => point.value));
 
@@ -172,6 +180,10 @@ export function MethodSplitPage({
     setFocusedSeriesName((current) => (current === name ? null : name));
   }
 
+  /**
+   * 切换统计表当前排序列和排序方向。
+   * @param nextKey 下一次要排序的字段。
+   */
   function toggleStatSort(nextKey: StatSortKey) {
     setStatSort((current) => {
       if (current.key === nextKey) {
@@ -201,10 +213,27 @@ export function MethodSplitPage({
     tooltip: {
       trigger: 'axis',
       confine: true,
-      backgroundColor: 'rgba(8, 15, 28, 0.96)',
-      borderColor: 'rgba(102, 142, 197, 0.28)',
+      backgroundColor: 'rgba(31, 33, 38, 0.96)',
+      borderColor: 'rgba(161, 166, 176, 0.22)',
       textStyle: {
-        color: '#eaf2ff',
+        color: '#f3f4f6',
+        fontSize: 10,
+      },
+      formatter: (params: unknown) => {
+        const tooltipItems = Array.isArray(params)
+          ? (params as Array<{ dataIndex: number; seriesName: string; value: number; color?: string }>)
+          : ([params] as Array<{ dataIndex: number; seriesName: string; value: number; color?: string }>);
+        const sortedItems = [...tooltipItems].sort((left, right) => Number(right.value) - Number(left.value));
+        const dataIndex = sortedItems[0]?.dataIndex ?? 0;
+        const timeLabel = categoryAxis[dataIndex] ?? '';
+
+        return [
+          `<div class="echart-tooltip__title">${timeLabel}</div>`,
+          ...sortedItems.map(
+            (item) =>
+              `<div class="echart-tooltip__row"><span class="echart-tooltip__dot" style="background:${item.color ?? '#92a1b6'}"></span><span class="echart-tooltip__name">${item.seriesName}</span><span class="echart-tooltip__value">${formatNumber(Number(item.value), breakdown.precision)} ${breakdown.unit}</span></div>`,
+          ),
+        ].join('');
       },
       position: (
         point: number[],
@@ -341,14 +370,14 @@ export function MethodSplitPage({
               <div className="split-sheet__action-group">
                 <button
                   type="button"
-                  className="split-sheet__action-btn"
-                  onClick={() => setVisibleSeriesNames(breakdown.series.map((series) => series.name))}
+                  className={`split-sheet__action-btn ${isAllSelected ? 'is-selected' : ''}`}
+                  onClick={() => setVisibleSeriesNames(allSeriesNames)}
                 >
                   全选
                 </button>
                 <button
                   type="button"
-                  className="split-sheet__action-btn split-sheet__action-btn--primary"
+                  className={`split-sheet__action-btn ${isDefaultSelection ? 'is-selected' : ''}`}
                   onClick={() => setVisibleSeriesNames(breakdown.defaultVisibleSeriesNames)}
                 >
                   默认

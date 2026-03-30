@@ -81,11 +81,12 @@ export function AlertsTab({ system, alerts, onChangeSystem }: AlertsTabProps) {
           <h2>{system.name}</h2>
           <button
             type="button"
-            className="icon-button"
+            className="icon-button icon-button--stacked"
             aria-label="切换系统"
             onClick={onChangeSystem}
           >
             <SystemSwitchIcon />
+            <span className="icon-button__label">系统</span>
           </button>
         </div>
 

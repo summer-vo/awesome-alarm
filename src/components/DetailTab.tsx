@@ -4,7 +4,7 @@
  * 负责串联当前系统的时间范围、指标总览、趋势分析和方法拆分页入口。
  */
 import { Button, Popover, Tag } from 'antd-mobile';
-import { BellOutline, HistogramOutline, QuestionCircleOutline } from 'antd-mobile-icons';
+import { AppstoreOutline, BellOutline, HistogramOutline, QuestionCircleOutline } from 'antd-mobile-icons';
 import { useEffect, useState } from 'react';
 import {
   buildMetricTrend,
@@ -35,6 +35,14 @@ const percentileHelpTextMap: Record<string, string> = {
   p99: '99%请求响应时间不超过该值',
 };
 
+// 接入来源统一映射到共享的标签色，避免总览、详情和系统选择层视觉漂移。
+const sourceTagToneClassMap: Record<string, string> = {
+  日志接入: 'tag-tone-log',
+  Hades接入: 'tag-tone-hades',
+  APM接入: 'tag-tone-apm',
+  链路追踪: 'tag-tone-trace',
+};
+
 /**
  * 渲染系统详情分栏。
  * @param system 当前选中的系统。
@@ -59,10 +67,12 @@ export function DetailTab({
 }: DetailTabProps) {
   // 本页仅维护指标总览的展开态，其余关键状态由根组件统一管理。
   const [metricsExpanded, setMetricsExpanded] = useState(false);
+  const [multiTrendView, setMultiTrendView] = useState(false);
 
   // 切换系统后收起扩展指标，避免沿用上一个系统的展开状态。
   useEffect(() => {
     setMetricsExpanded(false);
+    setMultiTrendView(false);
   }, [system?.id]);
 
   if (!system) {
@@ -79,7 +89,8 @@ export function DetailTab({
   }
 
   // 派生数据区：详情图表与统计摘要都基于当前系统、指标和时间范围实时生成。
-  const trendDataset = buildMetricTrend(system.id, selectedMetric, selectedRange);
+  const allTrendDatasets = detailTrendMetricKeys.map((key) => buildMetricTrend(system.id, key, selectedRange));
+  const trendDataset = allTrendDatasets.find((dataset) => dataset.key === selectedMetric) ?? allTrendDatasets[0];
   const metricOptions = detailTrendMetricKeys.map((key) => metricMetaMap[key]);
   const primaryMetricKeys: TrendMetricKey[] = ['throughput', 'avgRt', 'successRate', 'accuracyRate', 'tps'];
   const primaryRangeKeys: TimeRangeKey[] = ['5m', '15m', '30m', '1h', '24h'];
@@ -99,6 +110,22 @@ export function DetailTab({
     { label: '方差', value: getVarianceLabel(trendDataset.stats.variance, 2) },
     { label: '标准差', value: getVarianceLabel(trendDataset.stats.stdDeviation, 2) },
   ];
+
+  /**
+   * 在多图模式下直接从当前指标打开方法拆分页。
+   * @param metricKey 需要切换并下钻的趋势指标。
+   */
+  function handleOpenSplitFromTrend(metricKey: TrendMetricKey) {
+    onMetricChange(metricKey);
+    onOpenSplit();
+  }
+
+  /**
+   * 统一渲染指标总览卡片，并为百分位指标挂载说明气泡。
+   * @param metric 当前指标项。
+   * @param folded 当前卡片是否属于折叠区。
+   * @returns 单个指标卡片节点。
+   */
   const renderMetricCard = (metric: (typeof system.detailMetrics)[number], folded = false) => {
     const percentileHelpText = percentileHelpTextMap[metric.key];
     const cardContent = (
@@ -148,7 +175,12 @@ export function DetailTab({
                 <span className="detail-hero__business">{system.businessGroup}</span>
                 <div className="detail-hero__tags">
                   {system.sources.map((source) => (
-                    <Tag key={source} fill="outline" color="primary">
+                    <Tag
+                      key={source}
+                      fill="outline"
+                      color="primary"
+                      className={sourceTagToneClassMap[source] ?? ''}
+                    >
                       {source}
                     </Tag>
                   ))}
@@ -163,19 +195,21 @@ export function DetailTab({
               <div className="hero-actions">
                 <button
                   type="button"
-                  className="icon-button"
+                  className="icon-button icon-button--stacked"
                   aria-label="查看告警列表"
                   onClick={() => onOpenAlerts(system.id)}
                 >
                   <BellOutline />
+                  <span className="icon-button__label">告警</span>
                 </button>
                 <button
                   type="button"
-                  className="icon-button"
+                  className="icon-button icon-button--stacked"
                   aria-label="切换系统"
                   onClick={onChangeSystem}
                 >
                   <SystemSwitchIcon />
+                  <span className="icon-button__label">系统</span>
                 </button>
               </div>
             </div>
@@ -229,58 +263,97 @@ export function DetailTab({
         </div>
 
         {/* 趋势分析区：切换指标后驱动趋势图、变化率和统计摘要联动更新。 */}
-        <div className="panel-block">
+        <div className="panel-block trend-panel">
           <div className="subsection-heading">
             <h3>趋势分析</h3>
-            <button
-              type="button"
-              className="icon-button"
-              aria-label="查看方法拆分图"
-              onClick={onOpenSplit}
-            >
-              <HistogramOutline />
-            </button>
+            <div className="trend-panel__actions">
+              {!multiTrendView ? (
+                <button
+                  type="button"
+                  className="icon-button icon-button--stacked"
+                  aria-label="查看方法拆分图"
+                  onClick={onOpenSplit}
+                >
+                  <HistogramOutline />
+                  <span className="icon-button__label">拆分图</span>
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className={`icon-button icon-button--stacked ${multiTrendView ? 'is-active' : ''}`}
+                aria-label={multiTrendView ? '退出多图查看' : '同时查看五项趋势'}
+                onClick={() => setMultiTrendView((current) => !current)}
+              >
+                <AppstoreOutline />
+                <span className="icon-button__label">总览</span>
+              </button>
+            </div>
           </div>
 
-          <InlineSelectRow
-            options={metricOptions.map((metric) => ({
-              key: metric.key,
-              label: metric.label,
-            }))}
-            activeKey={selectedMetric}
-            primaryKeys={primaryMetricKeys}
-            onChange={onMetricChange}
-            variant="metric"
-          />
+          {!multiTrendView ? (
+            <>
+              <InlineSelectRow
+                options={metricOptions.map((metric) => ({
+                  key: metric.key,
+                  label: metric.label,
+                }))}
+                activeKey={selectedMetric}
+                primaryKeys={primaryMetricKeys}
+                onChange={onMetricChange}
+                variant="metric"
+              />
 
-          <div className="trend-summary">
-            <div>
-              <span>当前时刻</span>
-              <strong>{formatMetricValue(trendDataset.stats.current, trendDataset.unit, trendDataset.precision)}</strong>
-            </div>
-            <span className={`trend-summary__change trend-summary__change--${changeTone}`}>
-              变化率 {trendDataset.stats.changeRate > 0 ? '+' : ''}
-              {trendDataset.stats.changeRate.toFixed(2)}%
-            </span>
-          </div>
-
-          <TrendChart dataset={trendDataset} rangeKey={selectedRange} height={260} />
-
-          {/* 趋势统计区：与上方趋势图共享同一批数据源。 */}
-          <div className="trend-insight">
-            <div className="trend-insight__head">
-              <span>趋势数据分析</span>
-            </div>
-
-            <div className="detail-stats-grid detail-stats-grid--compact">
-              {trendStats.map((item) => (
-                <div key={item.label} className="stats-card">
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
+              <div className="trend-summary">
+                <div>
+                  <span>当前时刻</span>
+                  <strong>{formatMetricValue(trendDataset.stats.current, trendDataset.unit, trendDataset.precision)}</strong>
                 </div>
-              ))}
+                <span className={`trend-summary__change trend-summary__change--${changeTone}`}>
+                  变化率 {trendDataset.stats.changeRate > 0 ? '+' : ''}
+                  {trendDataset.stats.changeRate.toFixed(2)}%
+                </span>
+              </div>
+
+              <TrendChart dataset={trendDataset} rangeKey={selectedRange} height={260} />
+
+              {/* 趋势统计区：与上方趋势图共享同一批数据源。 */}
+              <div className="trend-insight">
+                <div className="trend-insight__head">
+                  <span>趋势数据分析</span>
+                </div>
+
+                <div className="detail-stats-grid detail-stats-grid--compact">
+                  {trendStats.map((item) => (
+                    <div key={item.label} className="stats-card">
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="multi-trend-grid">
+              {allTrendDatasets.map((dataset) => {
+                return (
+                  <section key={dataset.key} className="multi-trend-card">
+                    <div className="multi-trend-card__head">
+                      <span className="multi-trend-card__label">{dataset.label}</span>
+                      <button
+                        type="button"
+                        className="icon-button multi-trend-card__split-button"
+                        aria-label={`查看${dataset.label}方法拆分图`}
+                        onClick={() => handleOpenSplitFromTrend(dataset.key)}
+                      >
+                        <HistogramOutline />
+                      </button>
+                    </div>
+                    <TrendChart dataset={dataset} rangeKey={selectedRange} height={110} compact />
+                  </section>
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
       </section>
     </>

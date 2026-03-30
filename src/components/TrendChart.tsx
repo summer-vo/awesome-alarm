@@ -12,6 +12,8 @@ interface TrendChartProps {
   dataset: TrendDataset;
   rangeKey: TimeRangeKey;
   height?: number;
+  // 多图查看时使用紧凑模式，压缩坐标轴和线宽，保证纵向阅读效率。
+  compact?: boolean;
 }
 
 /**
@@ -21,28 +23,29 @@ interface TrendChartProps {
  * @param height 图表高度。
  * @returns 趋势图组件。
  */
-export function TrendChart({ dataset, rangeKey, height = 280 }: TrendChartProps) {
+export function TrendChart({ dataset, rangeKey, height = 280, compact = false }: TrendChartProps) {
   const labels = dataset.points.map((point) => formatChartTime(point.timestamp, rangeKey));
   const values = dataset.points.map((point) => point.value);
-  const labelInterval = Math.max(0, Math.floor(labels.length / 4));
+  const labelInterval = Math.max(0, Math.floor(labels.length / (compact ? 3 : 4)));
 
   // 图表配置统一在组件内部完成组装，便于趋势分析模块单独维护。
   const option: EChartsOption = {
     animationDuration: 500,
     grid: {
-      top: 40,
-      left: 12,
-      right: 18,
-      bottom: 28,
+      top: compact ? 12 : 32,
+      left: compact ? 6 : 12,
+      right: compact ? 8 : 18,
+      bottom: compact ? 10 : 24,
       containLabel: true,
     },
     tooltip: {
       trigger: 'axis',
       confine: true,
-      backgroundColor: 'rgba(8, 15, 28, 0.96)',
-      borderColor: 'rgba(102, 142, 197, 0.28)',
+      backgroundColor: 'rgba(31, 33, 38, 0.96)',
+      borderColor: 'rgba(161, 166, 176, 0.22)',
       textStyle: {
-        color: '#eaf2ff',
+        color: '#f3f4f6',
+        fontSize: 9,
       },
       /**
        * 生成 tooltip 内容。
@@ -94,7 +97,7 @@ export function TrendChart({ dataset, rangeKey, height = 280 }: TrendChartProps)
       axisLabel: {
         color: '#7f95bd',
         interval: labelInterval,
-        fontSize: 11,
+        fontSize: compact ? 9 : 11,
       },
       axisTick: {
         show: false,
@@ -103,9 +106,10 @@ export function TrendChart({ dataset, rangeKey, height = 280 }: TrendChartProps)
     yAxis: {
       type: 'value',
       scale: true,
+      splitNumber: compact ? 4 : 5,
       axisLabel: {
         color: '#7f95bd',
-        fontSize: 11,
+        fontSize: compact ? 9 : 11,
       },
       splitLine: {
         lineStyle: {
@@ -121,7 +125,7 @@ export function TrendChart({ dataset, rangeKey, height = 280 }: TrendChartProps)
         symbol: 'none',
         data: values,
         lineStyle: {
-          width: 2,
+          width: compact ? 1.6 : 2,
           color: dataset.color,
         },
         areaStyle: {

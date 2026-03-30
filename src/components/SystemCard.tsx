@@ -14,6 +14,14 @@ interface SystemCardProps {
   onOpen: (systemId: string) => void;
 }
 
+// 来源标签统一映射为项目内共享的语义色，保证总览和详情视觉一致。
+const sourceTagToneClassMap: Record<string, string> = {
+  日志接入: 'tag-tone-log',
+  Hades接入: 'tag-tone-hades',
+  APM接入: 'tag-tone-apm',
+  链路追踪: 'tag-tone-trace',
+};
+
 /**
  * 渲染总览页中的单个系统卡片。
  * @param system 当前系统数据。
@@ -40,7 +48,12 @@ export function SystemCard({ system, index, onOpen }: SystemCardProps) {
               <p className="system-card__eyebrow">{system.businessGroup}</p>
               <div className="system-card__tags">
                 {system.sources.map((source) => (
-                  <Tag key={source} fill="outline" color="primary">
+                  <Tag
+                    key={source}
+                    fill="outline"
+                    color="primary"
+                    className={sourceTagToneClassMap[source] ?? ''}
+                  >
                     {source}
                   </Tag>
                 ))}

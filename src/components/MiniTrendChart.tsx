@@ -21,8 +21,8 @@ interface MiniTrendChartProps {
 export function MiniTrendChart({ values, average, color }: MiniTrendChartProps) {
   const gradientId = useId();
   const width = 100;
-  const height = 42;
-  const padding = 3.5;
+  const height = 34;
+  const padding = 2.5;
   const rawMin = Math.min(...values, average);
   const rawMax = Math.max(...values, average);
   const rawRange = rawMax - rawMin;
@@ -59,7 +59,7 @@ export function MiniTrendChart({ values, average, color }: MiniTrendChartProps) 
         x2={width}
         y1={averageY}
         y2={averageY}
-        stroke="rgba(183, 204, 238, 0.55)"
+        stroke="rgba(183, 204, 238, 0.38)"
         strokeDasharray="4 4"
       />
       <path d={areaPath} fill={`url(#${gradientId})`} />
@@ -67,7 +67,7 @@ export function MiniTrendChart({ values, average, color }: MiniTrendChartProps) 
         d={linePath}
         fill="none"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
