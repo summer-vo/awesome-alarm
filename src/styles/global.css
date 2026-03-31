@@ -2106,15 +2106,17 @@ button {
 .alert-analysis__item {
   padding: 8px 10px;
   border-radius: 14px;
-  background: rgba(8, 18, 33, 0.48);
-  border: 1px solid rgba(161, 166, 176, 0.16);
+  background: linear-gradient(180deg, rgba(30, 33, 39, 0.76) 0%, rgba(24, 26, 31, 0.68) 100%);
+  border: 1px solid rgba(161, 166, 176, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 
 .alert-analysis__item span {
   display: block;
   margin-bottom: 6px;
-  color: var(--accent-cyan);
+  color: #7fa8d8;
   font-size: 10px;
+  letter-spacing: 0.01em;
 }
 
 .alert-analysis__item p {
@@ -2216,7 +2218,6 @@ button {
 .split-sheet__chart-card,
 .split-sheet__table-scroll,
 .split-sheet__legend-card,
-.alert-analysis__item,
 .alert-card,
 .picker-item {
   background: linear-gradient(165deg, rgba(35, 37, 42, 0.95) 0%, rgba(24, 26, 31, 0.94) 100%);
